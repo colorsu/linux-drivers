@@ -1624,8 +1624,11 @@ static int wm_adsp_load(struct wm_adsp *dsp)
 	if (file == NULL)
 		return -ENOMEM;
 
-	snprintf(file, PAGE_SIZE, "%s-dsp%d-%s.wmfw", dsp->part, dsp->num,
-		 dsp->firmwares[dsp->fw].file);
+	if (dsp->firmwares[dsp->fw].fullname)
+		snprintf(file, PAGE_SIZE, "%s", dsp->firmwares[dsp->fw].file);
+	else
+		snprintf(file, PAGE_SIZE, "%s-dsp%d-%s.wmfw", dsp->part,
+			 dsp->num, dsp->firmwares[dsp->fw].file);
 	file[PAGE_SIZE - 1] = '\0';
 
 	ret = request_firmware(&firmware, file, dsp->dev);
@@ -2195,7 +2198,10 @@ static int wm_adsp_load_coeff(struct wm_adsp *dsp)
 	if (file == NULL)
 		return -ENOMEM;
 
-	if (dsp->firmwares[dsp->fw].binfile)
+	if (dsp->firmwares[dsp->fw].fullname && dsp->firmwares[dsp->fw].binfile)
+		snprintf(file, PAGE_SIZE, "%s",
+			 dsp->firmwares[dsp->fw].binfile);
+	else if (dsp->firmwares[dsp->fw].binfile)
 		snprintf(file, PAGE_SIZE, "%s-dsp%d-%s.bin", dsp->part,
 			 dsp->num, dsp->firmwares[dsp->fw].binfile);
 	else
