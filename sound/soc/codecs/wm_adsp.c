@@ -1310,7 +1310,8 @@ static int wm_adsp_create_control(struct wm_adsp *dsp,
 	default:
 		ret = snprintf(name, SNDRV_CTL_ELEM_ID_NAME_MAXLEN,
 				"DSP%d%c %.12s %x", dsp->num, *region_name,
-				wm_adsp_fw_text[dsp->fw], alg_region->alg);
+				wm_adsp_fw_enum[dsp->num - 1].texts[dsp->fw],
+				alg_region->alg);
 
 		/* Truncate the subname from the start if it is too long */
 		if (subname) {
@@ -1338,7 +1339,7 @@ static int wm_adsp_create_control(struct wm_adsp *dsp,
 	ctl = kzalloc(sizeof(*ctl), GFP_KERNEL);
 	if (!ctl)
 		return -ENOMEM;
-	ctl->fw_name = wm_adsp_fw_text[dsp->fw];
+	ctl->fw_name = wm_adsp_fw_enum[dsp->num - 1].texts[dsp->fw];
 	ctl->alg_region = *alg_region;
 	ctl->name = kmemdup(name, strlen(name) + 1, GFP_KERNEL);
 	if (!ctl->name) {
@@ -1839,7 +1840,11 @@ static void wm_adsp_ctl_fixup_base(struct wm_adsp *dsp,
 	struct wm_coeff_ctl *ctl;
 
 	list_for_each_entry(ctl, &dsp->ctl_list, list) {
-		if (ctl->fw_name == wm_adsp_fw_text[dsp->fw] &&
+		const char *fw_name;
+
+		fw_name = wm_adsp_fw_enum[dsp->num - 1].texts[dsp->fw];
+
+		if (ctl->fw_name == fw_name &&
 		    alg_region->alg == ctl->alg_region.alg &&
 		    alg_region->type == ctl->alg_region.type) {
 			ctl->alg_region.base = alg_region->base;
