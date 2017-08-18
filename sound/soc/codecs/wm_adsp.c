@@ -3040,7 +3040,7 @@ static int wm_halo_set_rate_block(struct wm_adsp *dsp,
 int wm_halo_clear_stream_arb(struct wm_adsp *dsp)
 {
 	struct regmap *regmap = dsp->regmap;
-	unsigned int dspbase = dsp->base, reg;
+	unsigned int dspbase = dsp->base, reg, begin, end;
 	u32 values[3] = {0, 0, 0};
 	int ret;
 
@@ -3064,9 +3064,17 @@ int wm_halo_clear_stream_arb(struct wm_adsp *dsp)
 	}
 
 	/* clear stream arbiter channel configs */
-	for (reg = dspbase + HALO_STREAM_ARB_TX1_CONFIG_0;
-	     reg <= dspbase + HALO_STREAM_ARB_RX8_CONFIG_0;
-	     reg += 0x8) {
+	begin = dspbase + HALO_STREAM_ARB_TX1_CONFIG_0;
+	end = begin + dsp->n_tx_channels * 0x8;
+	for (reg = begin; reg < end; reg += 0x8) {
+		ret = regmap_write(regmap, reg,
+				   HALO_STREAM_ARB_MSTR_SEL_DEFAULT);
+		if (ret)
+			goto error;
+	}
+	begin = dspbase + HALO_STREAM_ARB_RX1_CONFIG_0;
+	end = begin + dsp->n_rx_channels * 0x8;
+	for (reg = begin; reg < end; reg += 0x8) {
 		ret = regmap_write(regmap, reg,
 				   HALO_STREAM_ARB_MSTR_SEL_DEFAULT);
 		if (ret)
@@ -3202,7 +3210,7 @@ static void wm_halo_boot_work(struct work_struct *work)
 
 	adsp_dbg(dsp, "Setting RX rates.\n");
 	ret = wm_halo_set_rate_block(dsp, HALO_SAMPLE_RATE_RX1,
-				     dsp->n_rx_rates, dsp->rx_rate_cache);
+				     dsp->n_rx_channels, dsp->rx_rate_cache);
 	if (ret) {
 		adsp_err(dsp, "Failed to set RX rates.\n");
 		goto err_mutex;
@@ -3210,7 +3218,7 @@ static void wm_halo_boot_work(struct work_struct *work)
 
 	adsp_dbg(dsp, "Setting TX rates.\n");
 	ret = wm_halo_set_rate_block(dsp, HALO_SAMPLE_RATE_TX1,
-				     dsp->n_tx_rates, dsp->tx_rate_cache);
+				     dsp->n_tx_channels, dsp->tx_rate_cache);
 	if (ret) {
 		adsp_err(dsp, "Failed to set TX rates.\n");
 		goto err_mutex;
@@ -3856,8 +3864,10 @@ int wm_halo_init(struct wm_adsp *dsp)
 
 	mutex_init(&dsp->pwr_lock);
 
-	dsp->rx_rate_cache = kcalloc(dsp->n_rx_rates, sizeof(u8), GFP_KERNEL);
-	dsp->tx_rate_cache = kcalloc(dsp->n_tx_rates, sizeof(u8), GFP_KERNEL);
+	dsp->rx_rate_cache = kcalloc(dsp->n_rx_channels, sizeof(u8),
+				     GFP_KERNEL);
+	dsp->tx_rate_cache = kcalloc(dsp->n_tx_channels, sizeof(u8),
+				     GFP_KERNEL);
 
 	if (!dsp->dev->of_node || wm_adsp_of_parse_adsp(dsp) <= 0) {
 		dsp->num_firmwares = ARRAY_SIZE(wm_adsp_fw);
