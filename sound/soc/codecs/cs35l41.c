@@ -1094,7 +1094,7 @@ static int cs35l41_handle_of_data(struct device *dev,
 
 	if (classh_config->classh_algo_enable) {
 		classh_config->classh_bst_override =
-			of_property_read_bool(np, "cirrus,classh-bst-overide");
+			of_property_read_bool(classh, "cirrus,classh-bst-overide");
 
 		ret = of_property_read_u32(classh,
 					   "cirrus,classh-bst-max-limit",
