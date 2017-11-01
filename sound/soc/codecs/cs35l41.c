@@ -257,22 +257,20 @@ static int cs35l41_otp_unpack(void *data)
 	/* unpack area starts at byte 10 (0-indexed) */
 	int bit_offset = 16, array_offset = 2;
 	unsigned int bit_sum = 8;
-	u32 otp_val, otp_id_reg, otp_id_hdr;
+	u32 otp_val, otp_id_reg;
 	const struct otp_map_element_t *otp_map_match;
 	const struct otp_packed_element_t *otp_map;
 
-
-	/* Read from OTP_MEM_IF */
-	regmap_bulk_read(cs35l41->regmap, CS35L41_OTP_MEM0, otp_mem,
-				CS35L41_OTP_SIZE_WORDS);
 	regmap_read(cs35l41->regmap, CS35L41_OTPID, &otp_id_reg);
+	/* Read from OTP_MEM_IF */
+	for (i = 0; i < 32; i++) {
+		regmap_read(cs35l41->regmap, CS35L41_OTP_MEM0 + i * 4, &(otp_mem[i]));
+		usleep_range(1,10);
+	}
 
-	otp_id_hdr = ((otp_mem[31] & CS35L41_OTP_HDR_ID_MASK) >>
-			CS35L41_OTP_HDR_ID_SHIFT);
-
-	if (otp_id_reg != otp_id_hdr) {
-		dev_err(cs35l41->dev, "OTP ID mismatch, REG = %d, HDR = %d\n",
-					otp_id_reg, otp_id_hdr);
+	if (((otp_mem[1] & CS35L41_OTP_HDR_MASK_1) != CS35L41_OTP_HDR_VAL_1)
+			|| (otp_mem[2] & CS35L41_OTP_HDR_MASK_2) != CS35L41_OTP_HDR_VAL_2) {
+		dev_err(cs35l41->dev, "Bad OTP header vals\n");
 		return -EINVAL;
 	}
 
