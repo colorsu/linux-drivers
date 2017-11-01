@@ -670,9 +670,6 @@
 #define CS35L41_MTLREVID_MASK		0x0F
 #define CS35L41_REVID_A0		0xA0
 
-#define CS35L41_OTP_HDR_ID_SHIFT	16
-#define CS35L41_OTP_HDR_ID_MASK		0x000F0000
-
 #define CS35L41_DSP_N_RX_RATES		8
 #define CS35L41_DSP_N_TX_RATES		8
 #define CS35L41_HALO_CORE_RESET		0x00000200
@@ -698,6 +695,11 @@ struct otp_map_element_t {
 
 extern const struct reg_default cs35l41_reg[CS35L41_MAX_CACHE_REG];
 extern const struct otp_map_element_t otp_map_map[2];
+
+#define CS35L41_OTP_HDR_MASK_1	0xFFFFFFFE
+#define CS35L41_OTP_HDR_MASK_2	0x0000FFFF
+#define CS35L41_OTP_HDR_VAL_1	0x00001500
+#define CS35L41_OTP_HDR_VAL_2	0x00000300
 
 #define CS35L41_CSPL_CMD_NONE			0
 #define CS35L41_CSPL_CMD_MUTE			1
