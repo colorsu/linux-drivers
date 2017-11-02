@@ -221,13 +221,37 @@ static const char * const cs35l41_pcm_source_texts[] = {"ASP", "DSP"};
 static const unsigned int cs35l41_pcm_source_values[] = {0x08, 0x32};
 static SOC_VALUE_ENUM_SINGLE_DECL(cs35l41_pcm_source_enum,
 				CS35L41_DAC_PCM1_SRC,
-				0, 0x7F,
+				0, CS35L41_ASP_SOURCE_MASK,
 				cs35l41_pcm_source_texts,
 				cs35l41_pcm_source_values);
 
 
 static const struct snd_kcontrol_new pcm_source_mux =
 	SOC_DAPM_ENUM("PCM Source", cs35l41_pcm_source_enum);
+
+static const char * const cs35l41_tx_input_texts[] = {"Zero", "ASPRX1", "ASPRX2", "VMON",
+							"IMON", "VPMON", "DSPTX1", "DSPTX2"};
+static const unsigned int cs35l41_tx_input_values[] = {0x00, CS35L41_INPUT_SRC_ASPRX1, CS35L41_INPUT_SRC_ASPRX2,
+							CS35L41_INPUT_SRC_VMON, CS35L41_INPUT_SRC_IMON,
+							CS35L41_INPUT_SRC_VPMON, CS35L41_INPUT_DSP_TX1,
+							CS35L41_INPUT_DSP_TX2};
+static SOC_VALUE_ENUM_SINGLE_DECL(cs35l41_asptx1_enum,
+				CS35L41_ASP_TX1_SRC,
+				0, CS35L41_ASP_SOURCE_MASK,
+				cs35l41_tx_input_texts,
+				cs35l41_tx_input_values);
+
+static const struct snd_kcontrol_new asp_tx1_mux =
+	SOC_DAPM_ENUM("ASPTX1 SRC", cs35l41_asptx1_enum);
+
+static SOC_VALUE_ENUM_SINGLE_DECL(cs35l41_asptx2_enum,
+				CS35L41_ASP_TX2_SRC,
+				0, CS35L41_ASP_SOURCE_MASK,
+				cs35l41_tx_input_texts,
+				cs35l41_tx_input_values);
+
+static const struct snd_kcontrol_new asp_tx2_mux =
+	SOC_DAPM_ENUM("ASPTX2 SRC", cs35l41_asptx2_enum);
 
 static const struct snd_kcontrol_new cs35l41_aud_controls[] = {
 	SOC_SINGLE_SX_TLV("Digital PCM Volume", CS35L41_AMP_DIG_VOL_CTRL,
@@ -520,12 +544,14 @@ static const struct snd_soc_dapm_widget cs35l41_dapm_widgets[] = {
 
 	SND_SOC_DAPM_AIF_IN("ASPRX1", NULL, 0, CS35L41_SP_ENABLES, 16, 0),
 	SND_SOC_DAPM_AIF_IN("ASPRX2", NULL, 0, CS35L41_SP_ENABLES, 17, 0),
-	SND_SOC_DAPM_AIF_OUT("SDOUT", NULL, 0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_OUT("ASPTX1", NULL, 0, CS35L41_SP_ENABLES, 0, 0),
+	SND_SOC_DAPM_AIF_OUT("ASPTX2", NULL, 0, CS35L41_SP_ENABLES, 1, 0),
 
 	SND_SOC_DAPM_ADC("VMON ADC", NULL, CS35L41_PWR_CTRL2, 12, 0),
 	SND_SOC_DAPM_ADC("IMON ADC", NULL, CS35L41_PWR_CTRL2, 13, 0),
 	SND_SOC_DAPM_ADC("VPMON ADC", NULL, CS35L41_PWR_CTRL2, 8, 0),
 	SND_SOC_DAPM_ADC("VBSTMON ADC", NULL, CS35L41_PWR_CTRL2, 9, 0),
+	SND_SOC_DAPM_ADC("TEMPMON ADC", NULL, CS35L41_PWR_CTRL2, 10, 0),
 	SND_SOC_DAPM_ADC("CLASS H", NULL, CS35L41_PWR_CTRL3, 4, 0),
 
 	SND_SOC_DAPM_OUT_DRV_E("Main AMP", CS35L41_PWR_CTRL2, 0, 0, NULL, 0,
@@ -536,7 +562,10 @@ static const struct snd_soc_dapm_widget cs35l41_dapm_widgets[] = {
 	SND_SOC_DAPM_INPUT("VBST"),
 	SND_SOC_DAPM_INPUT("ISENSE"),
 	SND_SOC_DAPM_INPUT("VSENSE"),
+	SND_SOC_DAPM_INPUT("TEMP"),
 
+	SND_SOC_DAPM_MUX("ASP TX1 Source", SND_SOC_NOPM, 0, 0, &asp_tx1_mux),
+	SND_SOC_DAPM_MUX("ASP TX2 Source", SND_SOC_NOPM, 0, 0, &asp_tx2_mux),
 	SND_SOC_DAPM_MUX("PCM Source", SND_SOC_NOPM, 0, 0, &pcm_source_mux),
 	SND_SOC_DAPM_SWITCH("DRE", SND_SOC_NOPM, 0, 0, &dre_ctrl),
 };
@@ -548,15 +577,38 @@ static const struct snd_soc_dapm_route cs35l41_audio_map[] = {
 	{ "DSP1", NULL, "DSP1 Preloader" },
 	{ "DSP1 Preload", NULL, "DSP1 Preloader" },
 
-	{"VPMON ADC", NULL, "VP"},
-	{"VBSTMON ADC", NULL, "VBST"},
-	{"IMON ADC", NULL, "ISENSE"},
-	{"VMON ADC", NULL, "VSENSE"},
-	{"SDOUT", NULL, "IMON ADC"},
-	{"SDOUT", NULL, "VMON ADC"},
-	{"SDOUT", NULL, "VBSTMON ADC"},
-	{"SDOUT", NULL, "VPMON ADC"},
-	{"AMP Capture", NULL, "SDOUT"},
+	{"ASP TX1 Source", "VMON", "VMON ADC"},
+	{"ASP TX1 Source", "IMON", "IMON ADC"},
+	{"ASP TX1 Source", "IMON", "VPMON ADC"},
+	{"ASP TX1 Source", "DSPTX1", "DSP1"},
+	{"ASP TX1 Source", "DSPTX2", "DSP1"},
+	{"ASP TX1 Source", "ASPRX1", "ASPRX1" },
+	{"ASP TX1 Source", "ASPRX2", "ASPRX2" },
+	{"ASP TX1 Source", "Zero", "ASPRX1" },
+	{"ASP TX2 Source", "VMON", "VMON ADC"},
+	{"ASP TX2 Source", "IMON", "IMON ADC"},
+	{"ASP TX2 Source", "IMON", "VPMON ADC"},
+	{"ASP TX2 Source", "DSPTX1", "DSP1"},
+	{"ASP TX2 Source", "DSPTX2", "DSP1"},
+	{"ASP TX2 Source", "ASPRX1", "ASPRX1" },
+	{"ASP TX2 Source", "ASPRX2", "ASPRX2" },
+	{"ASP TX2 Source", "Zero", "ASPRX1" },
+	{"ASPTX1", NULL, "ASP TX1 Source"},
+	{"ASPTX2", NULL, "ASP TX2 Source"},
+	{"AMP Capture", NULL, "ASPTX1"},
+	{"AMP Capture", NULL, "ASPTX2"},
+
+	{"VMON ADC", NULL, "ASPRX1"},
+	{"IMON ADC", NULL, "ASPRX1"},
+	{"VPMON ADC", NULL, "ASPRX1"},
+	{"TEMPMON ADC", NULL, "ASPRX1"},
+	{"VBSTMON ADC", NULL, "ASPRX1"},
+
+	{"DSP1", NULL, "IMON ADC"},
+	{"DSP1", NULL, "VMON ADC"},
+	{"DSP1", NULL, "VBSTMON ADC"},
+	{"DSP1", NULL, "VPMON ADC"},
+	{"DSP1", NULL, "TEMPMON ADC"},
 
 	{"ASPRX1", NULL, "AMP Playback"},
 	{"ASPRX2", NULL, "AMP Playback"},
@@ -694,8 +746,8 @@ static int cs35l41_pcm_hw_params(struct snd_pcm_substream *substream,
 			CS35L41_GLOBAL_FS_MASK,
 			cs35l41_fs_rates[i].fs_cfg << CS35L41_GLOBAL_FS_SHIFT);
 
-	asp_width = params_width(params);
-	asp_wl = params_physical_width(params);
+	asp_wl = params_width(params);
+	asp_width = params_physical_width(params);
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		regmap_update_bits(cs35l41->regmap, CS35L41_SP_FORMAT,
@@ -704,6 +756,13 @@ static int cs35l41_pcm_hw_params(struct snd_pcm_substream *substream,
 		regmap_update_bits(cs35l41->regmap, CS35L41_SP_RX_WL,
 				CS35L41_ASP_RX_WL_MASK,
 				asp_wl << CS35L41_ASP_RX_WL_SHIFT);
+		/* setup TX for DSP inputs */
+		regmap_update_bits(cs35l41->regmap, CS35L41_SP_FORMAT,
+				CS35L41_ASP_WIDTH_TX_MASK,
+				asp_width << CS35L41_ASP_WIDTH_TX_SHIFT);
+		regmap_update_bits(cs35l41->regmap, CS35L41_SP_TX_WL,
+				CS35L41_ASP_TX_WL_MASK,
+				asp_wl << CS35L41_ASP_TX_WL_SHIFT);
 		if (cs35l41->i2s_mode) {
 			regmap_update_bits(cs35l41->regmap,
 					CS35L41_SP_FRAME_RX_SLOT,
@@ -795,6 +854,10 @@ static int cs35l41_codec_set_sysclk(struct snd_soc_codec *codec,
 			cs35l41->extclk_cfg, freq);
 		return -EINVAL;
 	}
+
+	if (cs35l41->clksrc == CS35L41_PLLSRC_SCLK)
+		regmap_update_bits(cs35l41->regmap, CS35L41_SP_RATE_CTRL,
+					0x3F, cs35l41->extclk_cfg);
 
 	regmap_update_bits(cs35l41->regmap, CS35L41_PLL_CLK_CTRL,
 			CS35L41_PLL_OPENLOOP_MASK,
@@ -1235,6 +1298,11 @@ static int cs35l41_dsp_init(struct cs35l41_private *cs35l41)
 	dsp->n_rx_channels = CS35L41_DSP_N_RX_RATES;
 	dsp->n_tx_channels = CS35L41_DSP_N_TX_RATES;
 	ret = wm_halo_init(dsp, &cs35l41->rate_lock);
+
+	regmap_write(cs35l41->regmap, CS35L41_DSP1_RX5_SRC, CS35L41_INPUT_SRC_VPMON);
+	regmap_write(cs35l41->regmap, CS35L41_DSP1_RX6_SRC, CS35L41_INPUT_SRC_CLASSH);
+	regmap_write(cs35l41->regmap, CS35L41_DSP1_RX7_SRC, CS35L41_INPUT_SRC_TEMPMON);
+	regmap_write(cs35l41->regmap, CS35L41_DSP1_RX8_SRC, CS35L41_INPUT_SRC_RSVD);
 
 	return ret;
 }
