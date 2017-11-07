@@ -145,17 +145,6 @@ static const struct cs35l41_pll_sysclk_config cs35l41_pll_sysclk[] = {
 	{ 27000000,	0x3F },
 };
 
-static int cs35l41_dsp_load_config(struct cs35l41_private *cs35l41)
-{
-	int i;
-	for (i = 0; i < ARRAY_SIZE(cspl_ym_config_playback); i++) {
-		usleep_range(1,10);
-		regmap_write(cs35l41->regmap, CS35L41_CSPL_YM_CONFIG_ADDR +
-				i * 4, (cspl_ym_config_playback[i]) );
-	}
-	return 0;
-}
-
 static int cs35l41_dsp_power_ev(struct snd_soc_dapm_widget *w,
 		       struct snd_kcontrol *kcontrol, int event)
 {
@@ -186,9 +175,8 @@ static int cs35l41_dsp_load_ev(struct snd_soc_dapm_widget *w,
 	case SND_SOC_DAPM_POST_PMU:
 
 		regmap_write(cs35l41->regmap, CS35L41_CSPL_CAL_STRUCT_ADDR + 4,
-				(unsigned int)25);
+				(unsigned int)CS35L41_AMP_TEMP_DEFAULT);
 		if (cs35l41->halo_booted == false) {
-			cs35l41_dsp_load_config(cs35l41);
 			wm_halo_event(w, kcontrol, event);
 			cs35l41->halo_booted = true;
 		}
