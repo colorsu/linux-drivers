@@ -195,6 +195,9 @@ static int cs35l41_dsp_load_ev(struct snd_soc_dapm_widget *w,
 static DECLARE_TLV_DB_SCALE(dig_vol_tlv, -10200, 25, 0);
 static DECLARE_TLV_DB_SCALE(amp_gain_tlv, 0, 1, 1);
 
+static const struct snd_kcontrol_new amp_enable_ctrl =
+	SOC_DAPM_SINGLE("Switch", SND_SOC_NOPM, 0, 1, 0);
+
 static const struct snd_kcontrol_new dre_ctrl =
 	SOC_DAPM_SINGLE("DRE Switch", CS35L41_PWR_CTRL3, 20, 1, 0);
 
@@ -528,7 +531,7 @@ static const struct snd_soc_dapm_widget cs35l41_dapm_widgets[] = {
 		.reg = SND_SOC_NOPM, .shift = 0, .event = cs35l41_dsp_load_ev,
 		.event_flags = SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD },
 
-	SND_SOC_DAPM_OUTPUT("SPK"),
+	SND_SOC_DAPM_OUTPUT("AMP SPK"),
 
 	SND_SOC_DAPM_AIF_IN("ASPRX1", NULL, 0, CS35L41_SP_ENABLES, 16, 0),
 	SND_SOC_DAPM_AIF_IN("ASPRX2", NULL, 0, CS35L41_SP_ENABLES, 17, 0),
@@ -556,6 +559,7 @@ static const struct snd_soc_dapm_widget cs35l41_dapm_widgets[] = {
 	SND_SOC_DAPM_MUX("ASP TX2 Source", SND_SOC_NOPM, 0, 0, &asp_tx2_mux),
 	SND_SOC_DAPM_MUX("PCM Source", SND_SOC_NOPM, 0, 0, &pcm_source_mux),
 	SND_SOC_DAPM_SWITCH("DRE", SND_SOC_NOPM, 0, 0, &dre_ctrl),
+	SND_SOC_DAPM_SWITCH("AMP Enable", SND_SOC_NOPM, 0, 1, &amp_enable_ctrl),
 };
 
 static const struct snd_soc_dapm_route cs35l41_audio_map[] = {
@@ -598,12 +602,13 @@ static const struct snd_soc_dapm_route cs35l41_audio_map[] = {
 	{"DSP1", NULL, "VPMON ADC"},
 	{"DSP1", NULL, "TEMPMON ADC"},
 
-	{"ASPRX1", NULL, "AMP Playback"},
-	{"ASPRX2", NULL, "AMP Playback"},
+	{"AMP Enable", "Switch", "AMP Playback"},
+	{"ASPRX1", NULL, "AMP Enable"},
+	{"ASPRX2", NULL, "AMP Enable"},
 	{"DRE", "DRE Switch", "CLASS H"},
 	{"Main AMP", NULL, "CLASS H"},
 	{"Main AMP", NULL, "DRE"},
-	{"SPK", NULL, "Main AMP"},
+	{"AMP SPK", NULL, "Main AMP"},
 
 	{"PCM Source", "ASP", "ASPRX1"},
 	{"PCM Source", "DSP", "DSP1"},
