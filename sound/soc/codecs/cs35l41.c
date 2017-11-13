@@ -154,11 +154,11 @@ static int cs35l41_dsp_power_ev(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
 		if (cs35l41->halo_booted == false)
-			return wm_halo_early_event(w, kcontrol, event);
-		else {
+			wm_halo_early_event(w, kcontrol, event);
+		else
 			cs35l41->dsp.booted = true;
-			return 0;
-		}
+
+		return 0;
 	case SND_SOC_DAPM_PRE_PMD:
 	default:
 		return 0;
@@ -281,7 +281,7 @@ static int cs35l41_otp_unpack(void *data)
 	/* Read from OTP_MEM_IF */
 	for (i = 0; i < 32; i++) {
 		regmap_read(cs35l41->regmap, CS35L41_OTP_MEM0 + i * 4, &(otp_mem[i]));
-		usleep_range(1,10);
+		usleep_range(1, 10);
 	}
 
 	if (((otp_mem[1] & CS35L41_OTP_HDR_MASK_1) != CS35L41_OTP_HDR_VAL_1)
@@ -507,7 +507,7 @@ static int cs35l41_main_amp_event(struct snd_soc_dapm_widget *w,
 		regmap_update_bits(cs35l41->regmap, CS35L41_PWR_CTRL1,
 				CS35L41_GLOBAL_EN_MASK, 0);
 
-		usleep_range(1000,1100);
+		usleep_range(1000, 1100);
 
 		regmap_register_patch(cs35l41->regmap,
 				cs35l41_pdn_patch,
@@ -522,8 +522,8 @@ static int cs35l41_main_amp_event(struct snd_soc_dapm_widget *w,
 
 static const struct snd_soc_dapm_widget cs35l41_dapm_widgets[] = {
 
-	SND_SOC_DAPM_SPK("DSP1" " Preload", NULL),
-	{	.id = snd_soc_dapm_supply, .name = "DSP1" " Preloader",
+	SND_SOC_DAPM_SPK("DSP1 Preload", NULL),
+	{	.id = snd_soc_dapm_supply, .name = "DSP1 Preloader",
 		.reg = SND_SOC_NOPM, .shift = 0, .event = cs35l41_dsp_power_ev,
 		.event_flags = SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_PRE_PMD,
 		.subseq = 100,},
