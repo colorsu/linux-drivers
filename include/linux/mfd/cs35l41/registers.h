@@ -1,5 +1,5 @@
 /*
- * cs35l41.h -- CS35L41 ALSA SoC audio driver
+ * cs35l41.h -- CS35L41 definitions
  *
  * Copyright 2016 Cirrus Logic, Inc.
  *

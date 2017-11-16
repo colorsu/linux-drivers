@@ -12,7 +12,7 @@
  *
  */
 
-#include "cs35l41.h"
+#include <linux/mfd/cs35l41/registers.h>
 
 const struct reg_default cs35l41_reg[CS35L41_MAX_CACHE_REG] = {
 	{CS35L41_TEST_KEY_CTL,			0x00000000},
