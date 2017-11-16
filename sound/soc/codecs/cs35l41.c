@@ -40,7 +40,8 @@
 #include <linux/completion.h>
 #include <linux/spi/spi.h>
 
-#include "cs35l41.h"
+#include <linux/mfd/cs35l41/core.h>
+#include <linux/mfd/cs35l41/registers.h>
 #include "wm_adsp.h"
 
 static const char * const cs35l41_supplies[] = {
@@ -1090,9 +1091,18 @@ static struct snd_soc_dai_driver cs35l41_dai[] = {
 	},
 };
 
+static struct regmap *cs35l41_get_regmap(struct device *dev)
+{
+	struct cs35l41_private *cs35l41 = dev_get_drvdata(dev);
+
+	return cs35l41->regmap;
+}
+
 static struct snd_soc_codec_driver soc_codec_dev_cs35l41 = {
 	.probe = cs35l41_codec_probe,
 	.remove = cs35l41_codec_remove,
+	.get_regmap = cs35l41_get_regmap,
+
 	.set_sysclk = cs35l41_codec_set_sysclk,
 	.ignore_pmdown_time = false,
 	.component_driver = {
@@ -1104,35 +1114,6 @@ static struct snd_soc_codec_driver soc_codec_dev_cs35l41 = {
 		.controls = cs35l41_aud_controls,
 		.num_controls = ARRAY_SIZE(cs35l41_aud_controls),
 	}
-};
-
-static struct regmap_config cs35l41_regmap_spi = {
-	.reg_bits = 32,
-	.val_bits = 32,
-	.pad_bits = 16,
-	.reg_stride = 4,
-	.reg_format_endian = REGMAP_ENDIAN_BIG,
-	.val_format_endian = REGMAP_ENDIAN_BIG,
-	.max_register = CS35L41_LASTREG,
-	.reg_defaults = cs35l41_reg,
-	.num_reg_defaults = ARRAY_SIZE(cs35l41_reg),
-	.volatile_reg = cs35l41_volatile_reg,
-	.readable_reg = cs35l41_readable_reg,
-	.cache_type = REGCACHE_RBTREE,
-};
-
-static struct regmap_config cs35l41_regmap_i2c = {
-	.reg_bits = 32,
-	.val_bits = 32,
-	.reg_stride = 4,
-	.reg_format_endian = REGMAP_ENDIAN_BIG,
-	.val_format_endian = REGMAP_ENDIAN_BIG,
-	.max_register = CS35L41_LASTREG,
-	.reg_defaults = cs35l41_reg,
-	.num_reg_defaults = ARRAY_SIZE(cs35l41_reg),
-	.volatile_reg = cs35l41_volatile_reg,
-	.readable_reg = cs35l41_readable_reg,
-	.cache_type = REGCACHE_RBTREE,
 };
 
 static int cs35l41_handle_of_data(struct device *dev,
@@ -1342,12 +1323,27 @@ static int cs35l41_dsp_init(struct cs35l41_private *cs35l41)
 	return ret;
 }
 
-static int cs35l41_probe(struct cs35l41_private *cs35l41,
-				struct cs35l41_platform_data *pdata)
+static int cs35l41_probe(struct platform_device *pdev)
 {
+	struct cs35l41_data *cs35l41_mfd = dev_get_drvdata(pdev->dev.parent);
+	struct cs35l41_private *cs35l41;
 	int ret;
 	u32 regid, reg_revid, i, mtl_revid, int_status, chipid_match;
 	int timeout = 100;
+
+	cs35l41 = devm_kzalloc(&pdev->dev, sizeof(struct cs35l41_private), GFP_KERNEL);
+	if (!cs35l41)
+		return -ENOMEM;
+
+	platform_set_drvdata(pdev, cs35l41);
+
+	mutex_init(&cs35l41->rate_lock);
+
+	cs35l41->regmap = cs35l41_mfd->regmap;
+	cs35l41->dev = cs35l41_mfd->dev;
+	cs35l41->irq = cs35l41_mfd->irq;
+
+	pdev->dev.of_node = cs35l41->dev->of_node;
 
 	for (i = 0; i < ARRAY_SIZE(cs35l41_supplies); i++)
 		cs35l41->supplies[i].supply = cs35l41_supplies[i];
@@ -1363,9 +1359,7 @@ static int cs35l41_probe(struct cs35l41_private *cs35l41,
 		return ret;
 	}
 
-	if (pdata) {
-		cs35l41->pdata = *pdata;
-	} else if (cs35l41->dev->of_node) {
+	if (cs35l41->dev->of_node) {
 		ret = cs35l41_handle_of_data(cs35l41->dev, &cs35l41->pdata);
 		if (ret != 0)
 			return ret;
@@ -1472,8 +1466,8 @@ static int cs35l41_probe(struct cs35l41_private *cs35l41,
 
 	cs35l41_otp_unpack(cs35l41);
 
-	ret =  snd_soc_register_codec(cs35l41->dev, &soc_codec_dev_cs35l41,
-					cs35l41_dai, ARRAY_SIZE(cs35l41_dai));
+	ret = snd_soc_register_codec(&pdev->dev, &soc_codec_dev_cs35l41,
+				     cs35l41_dai, ARRAY_SIZE(cs35l41_dai));
 	if (ret < 0) {
 		dev_err(cs35l41->dev, "%s: Register codec failed\n", __func__);
 		goto err;
@@ -1487,113 +1481,28 @@ err:
 	return ret;
 }
 
-static int cs35l41_spi_probe(struct spi_device *spi)
+static int cs35l41_remove(struct platform_device *pdev)
 {
-	const struct regmap_config *regmap_config = &cs35l41_regmap_spi;
-	struct cs35l41_platform_data *pdata =
-					dev_get_platdata(&spi->dev);
-	struct cs35l41_private *cs35l41;
-	int ret;
-
-	cs35l41 = devm_kzalloc(&spi->dev,
-			       sizeof(struct cs35l41_private),
-			       GFP_KERNEL);
-	if (cs35l41 == NULL)
-		return -ENOMEM;
-
-	mutex_init(&cs35l41->rate_lock);
-
-	spi_set_drvdata(spi, cs35l41);
-	cs35l41->regmap = devm_regmap_init_spi(spi, regmap_config);
-	if (IS_ERR(cs35l41->regmap)) {
-		ret = PTR_ERR(cs35l41->regmap);
-		dev_err(&spi->dev, "Failed to allocate register map: %d\n",
-			ret);
-		return ret;
-	}
-
-	cs35l41->dev = &spi->dev;
-	cs35l41->irq = spi->irq;
-
-	return cs35l41_probe(cs35l41, pdata);
-}
-
-static int cs35l41_spi_remove(struct spi_device *spi)
-{
-	struct cs35l41_private *cs35l41 = spi_get_drvdata(spi);
+	struct cs35l41_private *cs35l41 = platform_get_drvdata(pdev);
 
 	regmap_write(cs35l41->regmap, CS35L41_IRQ1_MASK1, 0xFFFFFFFF);
 	wm_adsp2_remove(&cs35l41->dsp);
 	regulator_bulk_disable(cs35l41->num_supplies, cs35l41->supplies);
-	snd_soc_unregister_codec(cs35l41->dev);
+	snd_soc_unregister_codec(&pdev->dev);
+	snd_soc_unregister_platform(&pdev->dev);
 	return 0;
 }
 
-static struct spi_driver cs35l41_spi_driver = {
+static struct platform_driver cs35l41_platform_driver = {
 	.driver = {
-		.name		= "cs35l41",
-		.of_match_table = cs35l41_of_match,
+		.name		= "cs35l41-codec",
+		.owner = THIS_MODULE,
 	},
-	.id_table	= cs35l41_id_spi,
-	.probe		= cs35l41_spi_probe,
-	.remove		= cs35l41_spi_remove,
+	.probe		= cs35l41_probe,
+	.remove		= cs35l41_remove,
 };
 
-module_spi_driver(cs35l41_spi_driver);
-
-static int cs35l41_i2c_probe(struct i2c_client *client,
-				const struct i2c_device_id *id)
-{
-	struct cs35l41_private *cs35l41;
-	struct device *dev = &client->dev;
-	struct cs35l41_platform_data *pdata = dev_get_platdata(dev);
-	const struct regmap_config *regmap_config = &cs35l41_regmap_i2c;
-	int ret;
-
-	cs35l41 = devm_kzalloc(dev, sizeof(struct cs35l41_private), GFP_KERNEL);
-
-	if (cs35l41 == NULL)
-		return -ENOMEM;
-
-	mutex_init(&cs35l41->rate_lock);
-
-	cs35l41->dev = dev;
-	cs35l41->irq = client->irq;
-
-	i2c_set_clientdata(client, cs35l41);
-	cs35l41->regmap = devm_regmap_init_i2c(client, regmap_config);
-	if (IS_ERR(cs35l41->regmap)) {
-		ret = PTR_ERR(cs35l41->regmap);
-		dev_err(cs35l41->dev, "Failed to allocate register map: %d\n",
-			ret);
-		return ret;
-	}
-
-	return cs35l41_probe(cs35l41, pdata);
-}
-
-static int cs35l41_i2c_remove(struct i2c_client *client)
-{
-	struct cs35l41_private *cs35l41 = i2c_get_clientdata(client);
-
-	regmap_write(cs35l41->regmap, CS35L41_IRQ1_MASK1, 0xFFFFFFFF);
-	wm_adsp2_remove(&cs35l41->dsp);
-	regulator_bulk_disable(cs35l41->num_supplies, cs35l41->supplies);
-	snd_soc_unregister_codec(cs35l41->dev);
-	return 0;
-}
-
-static struct i2c_driver cs35l41_i2c_driver = {
-	.driver = {
-		.name		= "cs35l41",
-		.of_match_table = cs35l41_of_match,
-	},
-	.id_table	= cs35l41_id_i2c,
-	.probe		= cs35l41_i2c_probe,
-	.remove		= cs35l41_i2c_remove,
-};
-
-module_i2c_driver(cs35l41_i2c_driver);
+module_platform_driver(cs35l41_platform_driver);
 
 MODULE_DESCRIPTION("ASoC CS35L41 driver");
 MODULE_AUTHOR("David Rhodes, Cirrus Logic Inc, <david.rhodes@cirrus.com>");
