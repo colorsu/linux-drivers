@@ -2883,7 +2883,7 @@ static int wm_adsp_of_parse_caps(struct wm_adsp *dsp,
 
 	len_prop /= sizeof(u32);
 
-	if (len_prop < 5 || len_prop > 5 + MAX_NUM_SAMPLE_RATES)
+	if (len_prop < 5 || len_prop > 4 + MAX_NUM_SAMPLE_RATES)
 		return -EOVERFLOW;
 
 	fw->num_caps = 1;
