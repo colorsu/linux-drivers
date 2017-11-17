@@ -167,3 +167,16 @@ cs35l41: cs35l41@2 {
 	VA-supply = <&dummy_vreg>;
 	VP-supply = <&dummy_vreg>;
 };
+
+Optional Fixed HW Params sub-node:
+
+The cs35l41 node can have a single "cirrus,fixed-hw-params" sub-node for
+setting the HW params to a fixed rate, width, and word-length.
+
+Example:
+
+  cirrus,fixed-hw-params {
+    cirrus,fixed-rate = <48000>;
+    cirrus,fixed-width = <16>;
+    cirrus,fixed-wl = <16>;
+  };
