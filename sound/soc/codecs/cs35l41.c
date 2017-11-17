@@ -754,8 +754,18 @@ static int cs35l41_pcm_hw_params(struct snd_pcm_substream *substream,
 {
 	struct cs35l41_private *cs35l41 = snd_soc_codec_get_drvdata(dai->codec);
 	int i;
-	unsigned int rate = params_rate(params);
+	unsigned int rate;
 	u8 asp_width, asp_wl;
+
+	if (cs35l41->pdata.fixed_params) {
+		rate = cs35l41->pdata.fixed_rate;
+		asp_width = cs35l41->pdata.fixed_width;
+		asp_wl = cs35l41->pdata.fixed_wl;
+	} else {
+		rate = params_rate(params);
+		asp_width = params_physical_width(params);
+		asp_wl = params_width(params);
+	}
 
 	for (i = 0; i < ARRAY_SIZE(cs35l41_fs_rates); i++) {
 		if (rate == cs35l41_fs_rates[i].rate)
@@ -764,9 +774,6 @@ static int cs35l41_pcm_hw_params(struct snd_pcm_substream *substream,
 	regmap_update_bits(cs35l41->regmap, CS35L41_GLOBAL_CLK_CTRL,
 			CS35L41_GLOBAL_FS_MASK,
 			cs35l41_fs_rates[i].fs_cfg << CS35L41_GLOBAL_FS_SHIFT);
-
-	asp_wl = params_width(params);
-	asp_width = params_physical_width(params);
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		regmap_update_bits(cs35l41->regmap, CS35L41_SP_FORMAT,
@@ -1112,7 +1119,6 @@ static struct snd_soc_dai_driver cs35l41_dai[] = {
 			.formats = CS35L41_TX_FORMATS,
 		},
 		.ops = &cs35l41_ops,
-		.symmetric_rates = 1,
 	},
 };
 
@@ -1147,7 +1153,7 @@ static int cs35l41_handle_of_data(struct device *dev,
 	struct device_node *np = dev->of_node;
 	unsigned int val;
 	int ret;
-	struct device_node *classh, *irq_gpio1, *irq_gpio2;
+	struct device_node *classh, *irq_gpio1, *irq_gpio2, *fixed_params;
 	struct classh_cfg *classh_config = &pdata->classh_config;
 	struct cs35l41_irq_cfg *irq_gpio1_config = &pdata->irq_config1;
 	struct cs35l41_irq_cfg *irq_gpio2_config = &pdata->irq_config2;
@@ -1275,6 +1281,29 @@ static int cs35l41_handle_of_data(struct device *dev,
 		}
 	}
 	of_node_put(irq_gpio2);
+
+	fixed_params = of_get_child_by_name(np, "cirrus,fixed-hw-params");
+	pdata->fixed_params = fixed_params ? true : false;
+	if (fixed_params) {
+		ret = of_property_read_u32(fixed_params,
+					"cirrus,fixed-rate",
+					   &val);
+		if (ret >= 0)
+			pdata->fixed_rate = val;
+
+		ret = of_property_read_u32(fixed_params,
+					"cirrus,fixed-width",
+					   &val);
+		if (ret >= 0)
+			pdata->fixed_width = val;
+
+		ret = of_property_read_u32(fixed_params,
+					"cirrus,fixed-wl",
+					   &val);
+		if (ret >= 0)
+			pdata->fixed_wl = val;
+	}
+	of_node_put(fixed_params);
 
 	return 0;
 }

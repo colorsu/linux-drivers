@@ -41,6 +41,10 @@ struct cs35l41_platform_data {
 	int temp_warn_thld;
 	int ng_pcm_thld;
 	int ng_delay;
+	unsigned int fixed_rate;
+	unsigned int fixed_width;
+	unsigned int fixed_wl;
+	bool fixed_params;
 	struct cs35l41_irq_cfg irq_config1;
 	struct cs35l41_irq_cfg irq_config2;
 	struct classh_cfg classh_config;
