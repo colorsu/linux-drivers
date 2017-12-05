@@ -1135,7 +1135,7 @@ static struct snd_soc_codec_driver soc_codec_dev_cs35l41 = {
 	.get_regmap = cs35l41_get_regmap,
 
 	.set_sysclk = cs35l41_codec_set_sysclk,
-	.ignore_pmdown_time = false,
+
 	.component_driver = {
 		.dapm_widgets = cs35l41_dapm_widgets,
 		.num_dapm_widgets = ARRAY_SIZE(cs35l41_dapm_widgets),
@@ -1144,7 +1144,9 @@ static struct snd_soc_codec_driver soc_codec_dev_cs35l41 = {
 
 		.controls = cs35l41_aud_controls,
 		.num_controls = ARRAY_SIZE(cs35l41_aud_controls),
-	}
+	},
+
+	.ignore_pmdown_time = true,
 };
 
 static int cs35l41_handle_of_data(struct device *dev,
