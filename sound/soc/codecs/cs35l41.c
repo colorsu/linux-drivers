@@ -44,11 +44,6 @@
 #include <linux/mfd/cs35l41/registers.h>
 #include "wm_adsp.h"
 
-static const char * const cs35l41_supplies[] = {
-	"VA",
-	"VP",
-};
-
 struct cs35l41_private {
 	struct wm_adsp dsp; /* needs to be first member */
 	struct snd_soc_codec *codec;
@@ -1398,22 +1393,13 @@ static int cs35l41_probe(struct platform_device *pdev)
 	cs35l41->regmap = cs35l41_mfd->regmap;
 	cs35l41->dev = cs35l41_mfd->dev;
 	cs35l41->irq = cs35l41_mfd->irq;
+	cs35l41->num_supplies = cs35l41_mfd->num_supplies;
+	cs35l41->reset_gpio = cs35l41_mfd->reset_gpio;
+
+	for (i = 0; i < cs35l41->num_supplies; i++)
+		cs35l41->supplies[i].supply = cs35l41_mfd->supplies[i].supply;
 
 	pdev->dev.of_node = cs35l41->dev->of_node;
-
-	for (i = 0; i < ARRAY_SIZE(cs35l41_supplies); i++)
-		cs35l41->supplies[i].supply = cs35l41_supplies[i];
-
-	cs35l41->num_supplies = ARRAY_SIZE(cs35l41_supplies);
-
-	ret = devm_regulator_bulk_get(cs35l41->dev, cs35l41->num_supplies,
-					cs35l41->supplies);
-	if (ret != 0) {
-		dev_err(cs35l41->dev,
-			"Failed to request core supplies: %d\n",
-			ret);
-		return ret;
-	}
 
 	if (cs35l41->dev->of_node) {
 		ret = cs35l41_handle_of_data(cs35l41->dev, &cs35l41->pdata);
@@ -1423,35 +1409,6 @@ static int cs35l41_probe(struct platform_device *pdev)
 		ret = -EINVAL;
 		goto err;
 	}
-
-	ret = regulator_bulk_enable(cs35l41->num_supplies, cs35l41->supplies);
-	if (ret != 0) {
-		dev_err(cs35l41->dev,
-			"Failed to enable core supplies: %d\n", ret);
-		return ret;
-	}
-
-	/* returning NULL can be an option if in stereo mode */
-	cs35l41->reset_gpio = devm_gpiod_get_optional(cs35l41->dev, "reset",
-							GPIOD_OUT_LOW);
-	if (IS_ERR(cs35l41->reset_gpio)) {
-		ret = PTR_ERR(cs35l41->reset_gpio);
-		cs35l41->reset_gpio = NULL;
-		if (ret == -EBUSY) {
-			dev_info(cs35l41->dev,
-				 "Reset line busy, assuming shared reset\n");
-		} else {
-			dev_err(cs35l41->dev,
-				"Failed to get reset GPIO: %d\n", ret);
-			goto err;
-		}
-	}
-	if (cs35l41->reset_gpio) {
-		usleep_range(1000, 1100);
-		gpiod_set_value_cansleep(cs35l41->reset_gpio, 1);
-	}
-
-	usleep_range(2000, 2100);
 
 	ret = regmap_read(cs35l41->regmap, CS35L41_DEVID, &regid);
 	if (ret < 0) {
@@ -1535,7 +1492,6 @@ static int cs35l41_probe(struct platform_device *pdev)
 			regid, reg_revid >> 8);
 
 err:
-	regulator_bulk_disable(cs35l41->num_supplies, cs35l41->supplies);
 	return ret;
 }
 
@@ -1545,7 +1501,6 @@ static int cs35l41_remove(struct platform_device *pdev)
 
 	regmap_write(cs35l41->regmap, CS35L41_IRQ1_MASK1, 0xFFFFFFFF);
 	wm_adsp2_remove(&cs35l41->dsp);
-	regulator_bulk_disable(cs35l41->num_supplies, cs35l41->supplies);
 	snd_soc_unregister_codec(&pdev->dev);
 	snd_soc_unregister_platform(&pdev->dev);
 	return 0;
