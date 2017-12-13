@@ -1446,8 +1446,10 @@ static int cs35l41_probe(struct platform_device *pdev)
 			goto err;
 		}
 	}
-	if (cs35l41->reset_gpio)
+	if (cs35l41->reset_gpio) {
+		usleep_range(1000, 1100);
 		gpiod_set_value_cansleep(cs35l41->reset_gpio, 1);
+	}
 
 	usleep_range(2000, 2100);
 
