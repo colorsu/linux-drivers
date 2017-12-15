@@ -136,6 +136,8 @@ bool cs35l41_readable_reg(struct device *dev, unsigned int reg)
 	case CS35L41_FABID:
 	case CS35L41_RELID:
 	case CS35L41_OTPID:
+	case CS35L41_TEST_KEY_CTL:
+	case CS35L41_USER_KEY_CTL:
 	case CS35L41_OTP_CTRL0:
 	case CS35L41_OTP_CTRL3:
 	case CS35L41_OTP_CTRL4:
