@@ -298,6 +298,17 @@ static int cs35l41_otp_unpack(void *data)
 	const struct otp_map_element_t *otp_map_match;
 	const struct otp_packed_element_t *otp_map;
 
+	/*
+	 * We need to make sure we are using the bus
+	 * for these reads and writes so bypass
+	 * cache completely to ensure we hit the
+	 * registers correctly
+	 */
+	regcache_cache_bypass(cs35l41->regmap, true);
+
+	regmap_write(cs35l41->regmap, CS35L41_TEST_KEY_CTL, 0x00005555);
+	regmap_write(cs35l41->regmap, CS35L41_TEST_KEY_CTL, 0x0000AAAA);
+
 	regmap_read(cs35l41->regmap, CS35L41_OTPID, &otp_id_reg);
 	/* Read from OTP_MEM_IF */
 	for (i = 0; i < 32; i++) {
@@ -354,6 +365,12 @@ static int cs35l41_otp_unpack(void *data)
 						otp_map[i].shift),
 					otp_val << otp_map[i].shift);
 	}
+
+	regmap_write(cs35l41->regmap, CS35L41_TEST_KEY_CTL, 0x0000CCCC);
+	regmap_write(cs35l41->regmap, CS35L41_TEST_KEY_CTL, 0x00003333);
+
+	regcache_cache_bypass(cs35l41->regmap, false);
+
 	return 0;
 }
 
