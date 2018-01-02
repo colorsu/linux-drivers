@@ -22,6 +22,8 @@
 #include <sound/cs35l41.h>
 #include <linux/mfd/cs35l41/core.h>
 
+#define CS35L41_MFD_SYSFS_CLASS_NAME "cirrus"
+
 static const struct mfd_cell cs35l41_devs[] = {
 	{ .name = "cs35l41-codec", },
 };
