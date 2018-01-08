@@ -211,7 +211,6 @@ int cs35l41_halo_booted_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-static DECLARE_TLV_DB_SCALE(dig_vol_tlv, -10200, 25, 0);
 static DECLARE_TLV_DB_SCALE(amp_gain_tlv, 0, 1, 1);
 
 static const struct snd_kcontrol_new amp_enable_ctrl =
@@ -226,6 +225,18 @@ static const char * const cs35l41_pcm_sftramp_text[] =  {
 static SOC_ENUM_SINGLE_DECL(pcm_sft_ramp,
 			    CS35L41_AMP_DIG_VOL_CTRL, 0,
 			    cs35l41_pcm_sftramp_text);
+
+static const char * const cs35l41_amp_mute_text[] = {"Muted", "Unmuted"};
+static const unsigned int cs35l41_amp_mute_values[] = {
+				CS35L41_AMP_VOL_PCM_MUTE,
+				CS35L41_AMP_VOL_PCM_DEFAULT};
+
+static SOC_VALUE_ENUM_SINGLE_DECL(amp_mute_ctl,
+				CS35L41_AMP_DIG_VOL_CTRL,
+				CS35L41_AMP_VOL_PCM_SHIFT,
+				CS35L41_AMP_VOL_PCM_MASK,
+				cs35l41_amp_mute_text,
+				cs35l41_amp_mute_values);
 
 static const char * const cs35l41_pcm_source_texts[] = {"ASP", "DSP"};
 static const unsigned int cs35l41_pcm_source_values[] = {0x08, 0x32};
@@ -264,11 +275,10 @@ static const struct snd_kcontrol_new asp_tx2_mux =
 	SOC_DAPM_ENUM("ASPTX2 SRC", cs35l41_asptx2_enum);
 
 static const struct snd_kcontrol_new cs35l41_aud_controls[] = {
-	SOC_SINGLE_SX_TLV("Digital PCM Volume", CS35L41_AMP_DIG_VOL_CTRL,
-		      3, 0x4D0, 0x390, dig_vol_tlv),
 	SOC_SINGLE_TLV("AMP PCM Gain", CS35L41_AMP_GAIN_CTRL, 5, 0x14, 0,
 			amp_gain_tlv),
 	SOC_ENUM("PCM Soft Ramp", pcm_sft_ramp),
+	SOC_ENUM("AMP Mute", amp_mute_ctl),
 	SOC_SINGLE_EXT("DSP Booted", SND_SOC_NOPM, 0, 1, 0,
 			cs35l41_halo_booted_get, cs35l41_halo_booted_put),
 	WM_ADSP2_PRELOAD_SWITCH("DSP1", 1),
