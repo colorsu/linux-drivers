@@ -710,7 +710,7 @@ struct otp_map_element_t {
 };
 
 extern const struct reg_default cs35l41_reg[CS35L41_MAX_CACHE_REG];
-extern const struct otp_map_element_t otp_map_map[2];
+extern const struct otp_map_element_t otp_map_map[3];
 
 #define CS35L41_OTP_HDR_MASK_1	0xFFFFFFFE
 #define CS35L41_OTP_HDR_MASK_2	0x0000FFFF
