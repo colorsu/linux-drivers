@@ -96,7 +96,7 @@ int cs35l41_dev_init(struct cs35l41_data *cs35l41)
 
 	usleep_range(2000, 2100);
 
-	ret = mfd_add_devices(cs35l41->dev, PLATFORM_DEVID_NONE, cs35l41_devs,
+	ret = mfd_add_devices(cs35l41->dev, PLATFORM_DEVID_AUTO, cs35l41_devs,
 				ARRAY_SIZE(cs35l41_devs),
 				NULL, 0, NULL);
 	if (ret) {
