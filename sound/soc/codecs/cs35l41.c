@@ -1500,8 +1500,8 @@ static int cs35l41_probe(struct platform_device *pdev)
 	init_completion(&cs35l41->global_pup_done);
 
 	ret = devm_request_threaded_irq(cs35l41->dev, cs35l41->irq, NULL,
-				cs35l41_irq, IRQF_ONESHOT | irq_pol,
-				"cs35l41", cs35l41);
+				cs35l41_irq, IRQF_ONESHOT | IRQF_SHARED |
+				irq_pol, "cs35l41", cs35l41);
 
 	/* CS35L41 needs INT for PDN_DONE */
 	if (ret != 0) {
