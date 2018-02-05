@@ -45,7 +45,7 @@ int cs35l41_dev_init(struct cs35l41_data *cs35l41)
 		       sizeof(cs35l41->pdata));
 
 	cs35l41->mfd_class = class_create(THIS_MODULE,
-				CS35L41_MFD_SYSFS_CLASS_NAME);
+				dev_name(cs35l41->dev));
 	if (IS_ERR(cs35l41->mfd_class)) {
 		ret = PTR_ERR(cs35l41->mfd_class);
 		dev_err(cs35l41->dev, "err class create\n");
