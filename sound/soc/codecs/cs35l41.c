@@ -1002,40 +1002,61 @@ static int cs35l41_codec_probe(struct snd_soc_codec *codec)
 				CS35L41_TEMP_THLD_MASK,
 				cs35l41->pdata.temp_warn_thld);
 
-	if (cs35l41->pdata.ng_enable) {
+	if (cs35l41->pdata.dsp_ng_enable) {
 		regmap_update_bits(cs35l41->regmap,
 				CS35L41_MIXER_NGATE_CH1_CFG,
-				CS35L41_NG_ENABLE_MASK,
-				CS35L41_NG_ENABLE_MASK);
+				CS35L41_DSP_NG_ENABLE_MASK,
+				CS35L41_DSP_NG_ENABLE_MASK);
 		regmap_update_bits(cs35l41->regmap,
 				CS35L41_MIXER_NGATE_CH2_CFG,
-				CS35L41_NG_ENABLE_MASK,
-				CS35L41_NG_ENABLE_MASK);
+				CS35L41_DSP_NG_ENABLE_MASK,
+				CS35L41_DSP_NG_ENABLE_MASK);
 
-		if (cs35l41->pdata.ng_pcm_thld) {
+		if (cs35l41->pdata.dsp_ng_pcm_thld) {
 			regmap_update_bits(cs35l41->regmap,
 				CS35L41_MIXER_NGATE_CH1_CFG,
-				CS35L41_NG_THLD_MASK,
-				cs35l41->pdata.ng_pcm_thld);
+				CS35L41_DSP_NG_THLD_MASK,
+				cs35l41->pdata.dsp_ng_pcm_thld);
 			regmap_update_bits(cs35l41->regmap,
 				CS35L41_MIXER_NGATE_CH2_CFG,
-				CS35L41_NG_THLD_MASK,
-				cs35l41->pdata.ng_pcm_thld);
+				CS35L41_DSP_NG_THLD_MASK,
+				cs35l41->pdata.dsp_ng_pcm_thld);
 		}
 
-		if (cs35l41->pdata.ng_delay) {
+		if (cs35l41->pdata.dsp_ng_delay) {
 			regmap_update_bits(cs35l41->regmap,
 				CS35L41_MIXER_NGATE_CH1_CFG,
-				CS35L41_NG_DELAY_MASK,
-				cs35l41->pdata.ng_delay <<
-				CS35L41_NG_DELAY_SHIFT);
+				CS35L41_DSP_NG_DELAY_MASK,
+				cs35l41->pdata.dsp_ng_delay <<
+				CS35L41_DSP_NG_DELAY_SHIFT);
 			regmap_update_bits(cs35l41->regmap,
 				CS35L41_MIXER_NGATE_CH2_CFG,
-				CS35L41_NG_DELAY_MASK,
-				cs35l41->pdata.ng_delay <<
-				CS35L41_NG_DELAY_SHIFT);
+				CS35L41_DSP_NG_DELAY_MASK,
+				cs35l41->pdata.dsp_ng_delay <<
+				CS35L41_DSP_NG_DELAY_SHIFT);
 		}
 	}
+
+	if (cs35l41->pdata.hw_ng_sel)
+		regmap_update_bits(cs35l41->regmap,
+				CS35L41_NG_CFG,
+				CS35L41_HW_NG_SEL_MASK,
+				cs35l41->pdata.hw_ng_sel <<
+				CS35L41_HW_NG_SEL_SHIFT);
+
+	if (cs35l41->pdata.hw_ng_thld)
+		regmap_update_bits(cs35l41->regmap,
+				CS35L41_NG_CFG,
+				CS35L41_HW_NG_THLD_MASK,
+				cs35l41->pdata.hw_ng_thld <<
+				CS35L41_HW_NG_THLD_SHIFT);
+
+	if (cs35l41->pdata.hw_ng_delay)
+		regmap_update_bits(cs35l41->regmap,
+				CS35L41_NG_CFG,
+				CS35L41_HW_NG_DLY_MASK,
+				cs35l41->pdata.hw_ng_delay <<
+				CS35L41_HW_NG_DLY_SHIFT);
 
 	if (classh->classh_algo_enable) {
 		if (classh->classh_bst_override)
@@ -1249,12 +1270,19 @@ static int cs35l41_handle_of_data(struct device *dev,
 		pdata->bst_ipk = ((val - 1600) / 50) + 0x10;
 	}
 
-	pdata->ng_enable = of_property_read_bool(np,
-					"cirrus,noise-gate-enable");
-	if (of_property_read_u32(np, "cirrus,noise-gate-threshold", &val) >= 0)
-		pdata->ng_pcm_thld = val | CS35L41_VALID_PDATA;
-	if (of_property_read_u32(np, "cirrus,noise-gate-delay", &val) >= 0)
-		pdata->ng_delay = val | CS35L41_VALID_PDATA;
+	pdata->dsp_ng_enable = of_property_read_bool(np,
+					"cirrus,dsp-noise-gate-enable");
+	if (of_property_read_u32(np, "cirrus,dsp-noise-gate-threshold", &val) >= 0)
+		pdata->dsp_ng_pcm_thld = val | CS35L41_VALID_PDATA;
+	if (of_property_read_u32(np, "cirrus,dsp-noise-gate-delay", &val) >= 0)
+		pdata->dsp_ng_delay = val | CS35L41_VALID_PDATA;
+
+	if (of_property_read_u32(np, "cirrus,hw-noise-gate-select", &val) >= 0)
+		pdata->hw_ng_sel = val | CS35L41_VALID_PDATA;
+	if (of_property_read_u32(np, "cirrus,hw-noise-gate-threshold", &val) >= 0)
+		pdata->hw_ng_thld = val | CS35L41_VALID_PDATA;
+	if (of_property_read_u32(np, "cirrus,hw-noise-gate-delay", &val) >= 0)
+		pdata->hw_ng_delay = val | CS35L41_VALID_PDATA;
 
 	classh = of_get_child_by_name(np, "cirrus,classh-internal-algo");
 	classh_config->classh_algo_enable = classh ? true : false;
