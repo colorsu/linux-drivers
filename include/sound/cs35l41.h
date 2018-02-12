@@ -45,6 +45,7 @@ struct cs35l41_platform_data {
 	unsigned int fixed_width;
 	unsigned int fixed_wl;
 	bool fixed_params;
+	const char * dsp_part_name;
 	struct cs35l41_irq_cfg irq_config1;
 	struct cs35l41_irq_cfg irq_config2;
 	struct classh_cfg classh_config;
