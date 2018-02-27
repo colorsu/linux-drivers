@@ -189,7 +189,7 @@ static int cs35l41_dsp_load_ev(struct snd_soc_dapm_widget *w,
 	}
 }
 
-int cs35l41_halo_booted_get(struct snd_kcontrol *kcontrol,
+static int cs35l41_halo_booted_get(struct snd_kcontrol *kcontrol,
 			   struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
@@ -200,7 +200,7 @@ int cs35l41_halo_booted_get(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-int cs35l41_halo_booted_put(struct snd_kcontrol *kcontrol,
+static int cs35l41_halo_booted_put(struct snd_kcontrol *kcontrol,
 			   struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
@@ -812,7 +812,8 @@ static int cs35l41_pcm_hw_params(struct snd_pcm_substream *substream,
 		if (rate == cs35l41_fs_rates[i].rate)
 			break;
 	}
-	regmap_update_bits(cs35l41->regmap, CS35L41_GLOBAL_CLK_CTRL,
+	if (i < ARRAY_SIZE(cs35l41_fs_rates))
+		regmap_update_bits(cs35l41->regmap, CS35L41_GLOBAL_CLK_CTRL,
 			CS35L41_GLOBAL_FS_MASK,
 			cs35l41_fs_rates[i].fs_cfg << CS35L41_GLOBAL_FS_SHIFT);
 
