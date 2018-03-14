@@ -41,6 +41,7 @@ struct cs35l41_platform_data {
 	int temp_warn_thld;
 	int dsp_ng_pcm_thld;
 	int dsp_ng_delay;
+	int dout_hiz;
 	unsigned int hw_ng_sel;
 	unsigned int hw_ng_delay;
 	unsigned int hw_ng_thld;
