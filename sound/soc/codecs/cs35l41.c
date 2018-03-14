@@ -1052,6 +1052,12 @@ static int cs35l41_codec_probe(struct snd_soc_codec *codec)
 				CS35L41_TEMP_THLD_MASK,
 				cs35l41->pdata.temp_warn_thld);
 
+	if (cs35l41->pdata.dout_hiz <= CS35L41_ASP_DOUT_HIZ_MASK &&
+	    cs35l41->pdata.dout_hiz >= 0)
+		regmap_update_bits(cs35l41->regmap, CS35L41_SP_HIZ_CTRL,
+				CS35L41_ASP_DOUT_HIZ_MASK,
+				cs35l41->pdata.dout_hiz);
+
 	if (cs35l41->pdata.dsp_ng_enable) {
 		regmap_update_bits(cs35l41->regmap,
 				CS35L41_MIXER_NGATE_CH1_CFG,
@@ -1319,6 +1325,12 @@ static int cs35l41_handle_of_data(struct device *dev,
 		}
 		pdata->bst_ipk = ((val - 1600) / 50) + 0x10;
 	}
+
+	ret = of_property_read_u32(np, "cirrus,asp-sdout-hiz", &val);
+	if (ret >= 0)
+		pdata->dout_hiz = val;
+	else
+		pdata->dout_hiz = -1;
 
 	pdata->dsp_ng_enable = of_property_read_bool(np,
 					"cirrus,dsp-noise-gate-enable");
