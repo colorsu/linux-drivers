@@ -1479,12 +1479,14 @@ static int wmfw_add_ctl(struct wm_adsp *dsp, struct wm_coeff_ctl *ctl)
 		kcontrol->put = wm_coeff_put_acked;
 		break;
 	default:
-		kcontrol->get = wm_coeff_get;
-		kcontrol->put = wm_coeff_put;
-
-		ctl->bytes_ext.max = ctl->len;
-		ctl->bytes_ext.get = wm_coeff_tlv_get;
-		ctl->bytes_ext.put = wm_coeff_tlv_put;
+		if (kcontrol->access & SNDRV_CTL_ELEM_ACCESS_TLV_CALLBACK) {
+			ctl->bytes_ext.max = ctl->len;
+			ctl->bytes_ext.get = wm_coeff_tlv_get;
+			ctl->bytes_ext.put = wm_coeff_tlv_put;
+		} else {
+			kcontrol->get = wm_coeff_get;
+			kcontrol->put = wm_coeff_put;
+		}
 		break;
 	}
 
@@ -1606,26 +1608,33 @@ static int wm_adsp_create_control(struct wm_adsp *dsp,
 	case 1:
 		snprintf(name, SNDRV_CTL_ELEM_ID_NAME_MAXLEN, "DSP%d %s %x",
 			 dsp->num, region_name, alg_region->alg);
+		subname = NULL; /* don't append subname */
 		break;
-	default:
+	case 2:
 		ret = snprintf(name, SNDRV_CTL_ELEM_ID_NAME_MAXLEN,
 				"DSP%d%s%c %.12s %x", dsp->num,
 				dsp->suffix, *region_name,
 				wm_adsp_fw_text[dsp->fw], alg_region->alg);
+		break;
+	default:
+		ret = snprintf(name, SNDRV_CTL_ELEM_ID_NAME_MAXLEN,
+				"DSP%d%s %.12s %x",
+				dsp->num, dsp->suffix,
+				wm_adsp_fw_text[dsp->fw], alg_region->alg);
+		break;
+	}
+
+	if (subname) {
+		int avail = SNDRV_CTL_ELEM_ID_NAME_MAXLEN - ret - 2;
+		int skip = 0;
 
 		/* Truncate the subname from the start if it is too long */
-		if (subname) {
-			int avail = SNDRV_CTL_ELEM_ID_NAME_MAXLEN - ret - 2;
-			int skip = 0;
+		if (subname_len > avail)
+			skip = subname_len - avail;
 
-			if (subname_len > avail)
-				skip = subname_len - avail;
-
-			snprintf(name + ret,
-				 SNDRV_CTL_ELEM_ID_NAME_MAXLEN - ret, " %.*s",
-				 subname_len - skip, subname + skip);
-		}
-		break;
+		snprintf(name + ret,
+			 SNDRV_CTL_ELEM_ID_NAME_MAXLEN - ret, " %.*s",
+			 subname_len - skip, subname + skip);
 	}
 
 	list_for_each_entry(ctl, &dsp->ctl_list, list) {
@@ -3684,8 +3693,7 @@ err:
 }
 EXPORT_SYMBOL_GPL(wm_halo_event);
 
-int wm_adsp2_codec_probe(struct wm_adsp *dsp, struct snd_soc_codec *codec,
-			 bool ao_dsp)
+int wm_adsp2_codec_probe(struct wm_adsp *dsp, struct snd_soc_codec *codec)
 {
 	struct snd_soc_dapm_context *dapm = snd_soc_codec_get_dapm(codec);
 	char preload[32];
@@ -3699,7 +3707,7 @@ int wm_adsp2_codec_probe(struct wm_adsp *dsp, struct snd_soc_codec *codec,
 
 	dsp->codec = codec;
 
-	if (ao_dsp)
+	if (dsp->ao_dsp)
 		ret = snd_soc_add_codec_controls(codec,
 					 &wm_adsp_ao_fw_controls[dsp->num - 1],
 					 1);
