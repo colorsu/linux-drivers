@@ -77,6 +77,7 @@ static int cs35l41_spi_probe(struct spi_device *spi)
 	cs35l41->dev = &spi->dev;
 	cs35l41->irq = spi->irq;
 	cs35l41->pdata = pdata;
+	cs35l41->bus_spi = true;
 
 	dev_info(&spi->dev, "CS35L41 SPI MFD probe\n");
 

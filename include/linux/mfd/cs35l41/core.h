@@ -25,6 +25,7 @@ struct cs35l41_data {
 	struct gpio_desc *reset_gpio;
 	int num_supplies;
 	int irq;
+	bool bus_spi;
 };
 
 #endif

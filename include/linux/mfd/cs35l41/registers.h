@@ -702,6 +702,8 @@
 #define CS35L41_DSP_N_TX_RATES		8
 #define CS35L41_HALO_CORE_RESET		0x00000200
 
+#define CS35L41_SPI_MAX_FREQ_OTP	4000000
+
 #define CS35L41_RX_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE)
 #define CS35L41_TX_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE \
 				| SNDRV_PCM_FMTBIT_S32_LE)
@@ -709,20 +711,20 @@
 bool cs35l41_readable_reg(struct device *dev, unsigned int reg);
 bool cs35l41_volatile_reg(struct device *dev, unsigned int reg);
 
-struct otp_packed_element_t {
+struct cs35l41_otp_packed_element_t {
 	u32 reg;
 	u8 shift;
 	u8 size;
 };
 
-struct otp_map_element_t {
+struct cs35l41_otp_map_element_t {
 	u32 id;
 	u32 num_elements;
-	const struct otp_packed_element_t *map;
+	const struct cs35l41_otp_packed_element_t *map;
 };
 
 extern const struct reg_default cs35l41_reg[CS35L41_MAX_CACHE_REG];
-extern const struct otp_map_element_t otp_map_map[3];
+extern const struct cs35l41_otp_map_element_t otp_map_map[3];
 
 #define CS35L41_OTP_HDR_MASK_1	0xFFFFFFFE
 #define CS35L41_OTP_HDR_MASK_2	0x0000FFFF
