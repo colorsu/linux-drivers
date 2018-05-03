@@ -61,6 +61,7 @@ struct cs35l41_private {
 	bool i2s_mode;
 	bool swire_mode;
 	bool halo_booted;
+	bool bus_spi;
 	/* GPIO for /RST */
 	struct gpio_desc *reset_gpio;
 	struct completion global_pup_done;
@@ -319,7 +320,7 @@ static const struct snd_kcontrol_new cs35l41_aud_controls[] = {
 	WM_ADSP2_PRELOAD_SWITCH("DSP1", 1),
 };
 
-static const struct otp_map_element_t *find_otp_map(u32 otp_id)
+static const struct cs35l41_otp_map_element_t *find_otp_map(u32 otp_id)
 {
 	int i;
 
@@ -340,8 +341,10 @@ static int cs35l41_otp_unpack(void *data)
 	int bit_offset = 16, array_offset = 2;
 	unsigned int bit_sum = 8;
 	u32 otp_val, otp_id_reg;
-	const struct otp_map_element_t *otp_map_match;
-	const struct otp_packed_element_t *otp_map;
+	const struct cs35l41_otp_map_element_t *otp_map_match;
+	const struct cs35l41_otp_packed_element_t *otp_map;
+	struct spi_device *spi = NULL;
+	u32 orig_spi_freq = 0;
 
 	/*
 	 * We need to make sure we are using the bus
@@ -354,11 +357,23 @@ static int cs35l41_otp_unpack(void *data)
 	regmap_write(cs35l41->regmap, CS35L41_TEST_KEY_CTL, 0x00005555);
 	regmap_write(cs35l41->regmap, CS35L41_TEST_KEY_CTL, 0x0000AAAA);
 
+	if (cs35l41->bus_spi) {
+		spi = to_spi_device(cs35l41->dev);
+		orig_spi_freq = spi->max_speed_hz;
+		spi->max_speed_hz = CS35L41_SPI_MAX_FREQ_OTP;
+		spi_setup(spi);
+	}
+
 	regmap_read(cs35l41->regmap, CS35L41_OTPID, &otp_id_reg);
 	/* Read from OTP_MEM_IF */
 	for (i = 0; i < 32; i++) {
 		regmap_read(cs35l41->regmap, CS35L41_OTP_MEM0 + i * 4, &(otp_mem[i]));
 		usleep_range(1, 10);
+	}
+
+	if (cs35l41->bus_spi) {
+		spi->max_speed_hz = orig_spi_freq;
+		spi_setup(spi);
 	}
 
 	if (((otp_mem[1] & CS35L41_OTP_HDR_MASK_1) != CS35L41_OTP_HDR_VAL_1)
@@ -1553,6 +1568,7 @@ static int cs35l41_probe(struct platform_device *pdev)
 	cs35l41->irq = cs35l41_mfd->irq;
 	cs35l41->num_supplies = cs35l41_mfd->num_supplies;
 	cs35l41->reset_gpio = cs35l41_mfd->reset_gpio;
+	cs35l41->bus_spi = cs35l41_mfd->bus_spi;
 
 	for (i = 0; i < cs35l41->num_supplies; i++)
 		cs35l41->supplies[i].supply = cs35l41_mfd->supplies[i].supply;

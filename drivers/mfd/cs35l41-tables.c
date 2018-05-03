@@ -671,7 +671,7 @@ bool cs35l41_volatile_reg(struct device *dev, unsigned int reg)
 	}
 }
 
-static const struct otp_packed_element_t otp_map_1[CS35L41_NUM_OTP_ELEM] = {
+static const struct cs35l41_otp_packed_element_t otp_map_1[CS35L41_NUM_OTP_ELEM] = {
 	/* addr         shift   size */
 	{0x00002030,	0,	4}, /*TRIM_OSC_FREQ_TRIM*/
 	{0x00002030,	7,	1}, /*TRIM_OSC_TRIM_DONE*/
@@ -774,7 +774,7 @@ static const struct otp_packed_element_t otp_map_1[CS35L41_NUM_OTP_ELEM] = {
 	{0x00017044,	0,	24}, /*LOT_NUMBER*/
 };
 
-static const struct otp_packed_element_t otp_map_2[CS35L41_NUM_OTP_ELEM] = {
+static const struct cs35l41_otp_packed_element_t otp_map_2[CS35L41_NUM_OTP_ELEM] = {
 	/* addr         shift   size */
 	{0x00002030,	0,	4}, /*TRIM_OSC_FREQ_TRIM*/
 	{0x00002030,	7,	1}, /*TRIM_OSC_TRIM_DONE*/
@@ -877,7 +877,7 @@ static const struct otp_packed_element_t otp_map_2[CS35L41_NUM_OTP_ELEM] = {
 	{0x00017044,	0,	24}, /*LOT_NUMBER*/
 };
 
-const struct otp_map_element_t otp_map_map[3] = {
+const struct cs35l41_otp_map_element_t otp_map_map[3] = {
 	{
 		.id = 0x01,
 		.map = otp_map_1,
