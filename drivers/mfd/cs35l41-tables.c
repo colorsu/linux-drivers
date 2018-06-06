@@ -894,3 +894,4 @@ const struct otp_map_element_t otp_map_map[3] = {
 		.num_elements = CS35L41_NUM_OTP_ELEM,
 	},
 };
+EXPORT_SYMBOL(otp_map_map);
