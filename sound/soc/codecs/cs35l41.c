@@ -43,6 +43,7 @@
 #include <linux/mfd/cs35l41/core.h>
 #include <linux/mfd/cs35l41/registers.h>
 #include "wm_adsp.h"
+#include "cs35l41.h"
 
 struct cs35l41_private {
 	struct wm_adsp dsp; /* needs to be first member */
@@ -962,19 +963,19 @@ static int cs35l41_component_set_sysclk(struct snd_soc_component *component,
 	cs35l41->extclk_freq = freq;
 
 	switch (clk_id) {
-	case 0:
+	case CS35L41_CLKID_SCLK:
 		cs35l41->clksrc = CS35L41_PLLSRC_SCLK;
 		break;
-	case 1:
+	case CS35L41_CLKID_LRCLK:
 		cs35l41->clksrc = CS35L41_PLLSRC_LRCLK;
 		break;
-	case 2:
+	case CS35L41_CLKID_PDMCLK:
 		cs35l41->clksrc = CS35L41_PLLSRC_PDMCLK;
 		break;
-	case 3:
+	case CS35L41_CLKID_SELF:
 		cs35l41->clksrc = CS35L41_PLLSRC_SELF;
 		break;
-	case 4:
+	case CS35L41_CLKID_MCLK:
 		cs35l41->clksrc = CS35L41_PLLSRC_MCLK;
 		break;
 	default:
